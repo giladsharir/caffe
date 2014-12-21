@@ -110,7 +110,22 @@ void ImageDataLayer<Dtype>::InternalThreadEntry() {
     if (!ReadImageToDatum(lines_[lines_id_].first,
           lines_[lines_id_].second,
           new_height, new_width, &datum)) {
-      continue;
+
+    	datum.set_channels(1);
+    	datum.set_height(new_height);
+    	datum.set_width(new_width);
+    	datum.set_label(0);
+    	datum.clear_data();
+    	datum.clear_float_data();
+    	string* datum_string = datum.mutable_data();
+    	for (int h = 0; h < new_height; ++h) {
+    		for (int w = 0; w < new_width; ++w) {
+    			datum_string->push_back(
+    					static_cast<char>(0));
+    		}
+    	}
+
+      //continue;
     }
 
     // Apply transformations (mirror, crop...) to the data
@@ -119,6 +134,7 @@ void ImageDataLayer<Dtype>::InternalThreadEntry() {
     top_label[item_id] = datum.label();
     // go to the next iter
     lines_id_++;
+    //std::cout << "line_ID " << lines_id_ << std::endl;
     if (lines_id_ >= lines_size) {
       // We have reached the end. Restart from the first.
       DLOG(INFO) << "Restarting data prefetching from start.";

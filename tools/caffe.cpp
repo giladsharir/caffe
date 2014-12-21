@@ -27,8 +27,12 @@ DEFINE_string(snapshot, "",
 DEFINE_string(weights, "",
     "Optional; the pretrained weights to initialize finetuning. "
     "Cannot be set simultaneously with snapshot.");
-DEFINE_int32(iterations, 50,
+DEFINE_int32(iterations, -1,
     "The number of iterations to run.");
+DEFINE_string(output, "output.txt",
+    "The output file name.");
+DEFINE_string(filelist, "file_list.txt",
+    "The list of images to process.");
 
 // A simple registry for caffe commands.
 typedef int (*BrewFunction)();
@@ -129,6 +133,9 @@ int test() {
   CHECK_GT(FLAGS_model.size(), 0) << "Need a model definition to score.";
   CHECK_GT(FLAGS_weights.size(), 0) << "Need model weights to score.";
 
+  std::ifstream instream(FLAGS_filelist.c_str());
+  std::ofstream outstream(FLAGS_output.c_str());
+  outstream.close();
   // Set device id and mode
   if (FLAGS_gpu >= 0) {
     LOG(INFO) << "Use GPU with device ID " << FLAGS_gpu;
@@ -138,23 +145,111 @@ int test() {
     LOG(INFO) << "Use CPU.";
     Caffe::set_mode(Caffe::CPU);
   }
+
+  vector<std::string> file_list;
+  std::string name;
+  int lab;
+
+  std::string line;
+  vector<std::string> imageID;
+
+  std::ofstream ostream("Catalog_list.txt");
+
+  while (instream >> line)
+  {
+	  int p = line.find(',',0);
+	  imageID.push_back(line.substr(0,p));
+
+	  int p2 = line.find(',',p+1);
+	  name = line.substr(p2+1,*line.end()-p2);
+	  file_list.push_back(name);
+
+	  ostream << name << " 0 \n";
+	  //std::cout << name << std::endl;
+
+  }
+
+
+//  while (instream >> name >> lab)
+//	  file_list.push_back(name);
+  instream.close();
+  ostream.close();
+  std::cout << "number of files: " << file_list.size() << std::endl;
+
+
   // Instantiate the caffe net.
   Caffe::set_phase(Caffe::TEST);
   Net<float> caffe_net(FLAGS_model);
   caffe_net.CopyTrainedLayersFrom(FLAGS_weights);
+
+  if (FLAGS_iterations < 0)
+  {
+	  int b_size = caffe_net.blob_by_name("labels")->num();
+	  FLAGS_iterations = file_list.size()/b_size;
+  }
   LOG(INFO) << "Running for " << FLAGS_iterations << " iterations.";
 
   vector<Blob<float>* > bottom_vec;
   vector<int> test_score_output_id;
   vector<float> test_score;
   float loss = 0;
+
+  Timer time;
+
   for (int i = 0; i < FLAGS_iterations; ++i) {
+	time.Start();
     float iter_loss;
     const vector<Blob<float>*>& result =
         caffe_net.Forward(bottom_vec, &iter_loss);
     loss += iter_loss;
     int idx = 0;
-    for (int j = 0; j < result.size(); ++j) {
+    std::cout << "iteration: " << i << std::endl;
+    //std::cout << "iteration result size: " << result.size() << std::endl;
+    //std::cout << "result[0] size: " << result[0]->count() << std::endl;
+    //std::cout << "result[1] size: " << result[1]->num() << " " << result[1]->channels() << " " << result[1]->width() << " "<< " " << result[1]->height() << std::endl;
+
+    //shared_ptr<Blob<float> > probBlob = caffe_net.blob_by_name("prob");
+    shared_ptr<Blob<float> > labelsBlob = caffe_net.blob_by_name("labels");
+
+    //std::cout << "prob Blob size: " << probBlob->num() << " " << probBlob->channels() << " " << probBlob->width() << " "<< " " << probBlob->height() << std::endl;
+    std::cout << "labels Blob size: " << labelsBlob->num() << " " << labelsBlob->channels() << " " << labelsBlob->width() << " "<< " " << labelsBlob->height() << std::endl;
+
+    outstream.open(FLAGS_output.c_str(),std::ios::app);
+
+    for (int j=0; j < labelsBlob->num(); ++j)
+    {
+
+    	std::string file_name = file_list[j+labelsBlob->num()*i];
+
+    	std::string ID = imageID[j+labelsBlob->num()*i];
+
+    	outstream << file_name << ", " << ID << ", ";
+
+    	for (int k=0; k < labelsBlob->height(); ++k)
+    		outstream << labelsBlob->data_at(j,0,k,0) << ", " << labelsBlob->data_at(j,1,k,0) << ", ";
+    	outstream << std::endl;
+    }
+    outstream.close();
+
+    std::cout << time.Seconds()  << " Seconds \n";
+    time.Stop();
+//
+//    const float* result_vec = result[1]->cpu_data();
+//    for (int k = 0; k < result[1]->count(); ++k, ++idx) {
+//
+//    	const float score = result_vec[k];
+//    	//LOG(INFO) << score;
+//    	if (i == 0) {
+//    		test_score.push_back(score);
+//    		test_score_output_id.push_back(1);
+//    	} else {
+//    		test_score[idx] += score;
+//    	}
+//    	const std::string& output_name = caffe_net.blob_names()[
+//																caffe_net.output_blob_indices()[1]];
+//    	//LOG(INFO) << "Batch " << i << ", " << output_name << " = " << score;
+//    }
+   /* for (int j = 0; j < result.size(); ++j) {
       const float* result_vec = result[j]->cpu_data();
       for (int k = 0; k < result[j]->count(); ++k, ++idx) {
         const float score = result_vec[k];
@@ -169,6 +264,7 @@ int test() {
         LOG(INFO) << "Batch " << i << ", " << output_name << " = " << score;
       }
     }
+    */
   }
   loss /= FLAGS_iterations;
   LOG(INFO) << "Loss: " << loss;
