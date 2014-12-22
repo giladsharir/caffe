@@ -158,9 +158,10 @@ int test() {
   while (instream >> line)
   {
 	  int p = line.find(',',0);
-	  imageID.push_back(line.substr(0,p));
-
 	  int p2 = line.find(',',p+1);
+
+	  imageID.push_back(line.substr(p+1,p2-p-1));
+
 	  name = line.substr(p2+1,*line.end()-p2);
 	  file_list.push_back(name);
 
@@ -194,7 +195,9 @@ int test() {
   vector<float> test_score;
   float loss = 0;
 
-  Timer time;
+  Timer time, total_time;
+
+  total_time.Start();
 
   for (int i = 0; i < FLAGS_iterations; ++i) {
 	time.Start();
@@ -266,6 +269,9 @@ int test() {
     }
     */
   }
+
+  LOG(INFO) << "Total time: " << total_time.Seconds() << " Seconds";
+
   loss /= FLAGS_iterations;
   LOG(INFO) << "Loss: " << loss;
   for (int i = 0; i < test_score.size(); ++i) {
