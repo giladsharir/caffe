@@ -160,8 +160,9 @@ int test() {
 	  int p = line.find(',',0);
 	  int p2 = line.find(',',p+1);
 
-	  imageID.push_back(line.substr(p+1,p2-p-1));
+	  //imageID.push_back(line.substr(p+1,p2-p-1));
 
+	  imageID.push_back(line.substr(0,p));
 	  name = line.substr(p2+1,*line.end()-p2);
 	  file_list.push_back(name);
 
