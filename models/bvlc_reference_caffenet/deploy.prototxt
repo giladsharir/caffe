@@ -4,6 +4,7 @@ input_dim: 10
 input_dim: 3
 input_dim: 227
 input_dim: 227
+force_backward: true
 layers {
   name: "conv1"
   type: CONVOLUTION
