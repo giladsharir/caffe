@@ -23,7 +23,11 @@ void SoftmaxLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
 template <typename Dtype>
 void SoftmaxLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     vector<Blob<Dtype>*>* top) {
-  const Dtype* bottom_data = bottom[0]->cpu_data();
+  //const Dtype* bottom_data = bottom[0]->cpu_data();
+  Dtype* bottom_data = bottom[0]->mutable_cpu_data();
+
+  std::cout << bottom[0]->count() << " " << bottom[0]->num() <<  " " << bottom[0]->channels() << " " << bottom[0]->height() <<
+		  	  " " << bottom[0]->width() << std::endl << std::endl;
   Dtype* top_data = (*top)[0]->mutable_cpu_data();
   Dtype* scale_data = scale_.mutable_cpu_data();
   int num = bottom[0]->num();
@@ -33,6 +37,7 @@ void SoftmaxLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   caffe_copy(bottom[0]->count(), bottom_data, top_data);
   // We need to subtract the max to avoid numerical issues, compute the exp,
   // and then normalize.
+
   for (int i = 0; i < num; ++i) {
     // initialize scale_data to the first plane
     caffe_copy(spatial_dim, bottom_data + i * dim, scale_data);
@@ -40,8 +45,26 @@ void SoftmaxLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       for (int k = 0; k < spatial_dim; k++) {
         scale_data[k] = std::max(scale_data[k],
             bottom_data[i * dim + j * spatial_dim + k]);
+        //std::cout << j << " " << scale_data[k] << " ";
+
       }
     }
+    std::cout << std::endl;
+    int i_max = std::max_element(bottom_data,bottom_data+channels)-bottom_data;
+    Dtype mx = *std::max_element(bottom_data,bottom_data+channels);
+
+    //i_max = 954;
+    std::cout<< "I_max: " << i_max << " " << mx << std::endl;
+    for (int j=0; j<channels; ++j) {
+    	if (j!=i_max)
+    		bottom_data[j]=0.;
+    	else
+    		std::cout << "unit activation: " << bottom_data[j] << " " << scale_data[0] << std::endl;
+    }
+    caffe_copy(channels, bottom_data, top_data);
+  }
+  /*
+
     // subtraction
     caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, channels, spatial_dim,
         1, -1., sum_multiplier_.cpu_data(), scale_data, 1., top_data + i * dim);
@@ -56,6 +79,7 @@ void SoftmaxLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
           top_data + (*top)[0]->offset(i, j));
     }
   }
+  */
 }
 
 template <typename Dtype>

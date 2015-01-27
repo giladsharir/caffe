@@ -36,6 +36,8 @@ void SoftmaxWithLossLayer<Dtype>::Forward_cpu(
   // The forward pass computes the softmax prob values.
   softmax_layer_->Forward(softmax_bottom_vec_, &softmax_top_vec_);
   const Dtype* prob_data = prob_.cpu_data();
+  std::cout << "prob: " << prob_data[251] << std::endl;
+
   const Dtype* label = bottom[1]->cpu_data();
   int num = prob_.num();
   int dim = prob_.count() / num;
@@ -64,6 +66,7 @@ void SoftmaxWithLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   }
   if (propagate_down[0]) {
     Dtype* bottom_diff = (*bottom)[0]->mutable_cpu_diff();
+
     const Dtype* prob_data = prob_.cpu_data();
     caffe_copy(prob_.count(), prob_data, bottom_diff);
     const Dtype* label = (*bottom)[1]->cpu_data();
@@ -79,6 +82,24 @@ void SoftmaxWithLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     // Scale gradient
     const Dtype loss_weight = top[0]->cpu_diff()[0];
     caffe_scal(prob_.count(), loss_weight / num / spatial_dim, bottom_diff);
+
+    int i_max = std::max_element(prob_data,prob_data+dim)-prob_data;
+
+    //i_max = 954;
+    for (int i=0; i<(*bottom)[0]->count(); ++i) {
+    	if (i!=i_max)
+    		bottom_diff[i]=0.;
+    	else
+    		std::cout << "unit grad: " << bottom_diff[i] << std::endl;
+
+    }
+//    for (int i=0; i<(*bottom)[0]->count(); ++i) {
+//    	if (i!=251)
+//    		bottom_diff[i]=0.;
+//    	else
+//    		std::cout << "unit grad: " << bottom_diff[i] << std::endl;
+//
+//    }
   }
 }
 

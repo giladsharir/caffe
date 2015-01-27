@@ -1,5 +1,7 @@
 # take an array of shape (n, height, width) or (n, height, width, channels)
 #  and visualize each (height, width) thing in a grid of size approx. sqrt(n) by sqrt(n)
+show_fig=False
+
 def vis_square(data, padsize=1, padval=0):
     data -= data.min()
     data /= data.max()
@@ -18,28 +20,93 @@ def vis_square(data, padsize=1, padval=0):
     
     
 def draw_grad(net):
+    
     print "gradient plot"
     net.forward()
     net.backward()
+    
+    p = net.blobs['fc8'].data[0]
+    lbl = np.argmax(p)
+    print "label: {}".format(lbl)
+    
     c = net.blobs['data'].diff
     d = net.blobs['data'].data
-    plt.subplot(2,1,1)
-    plt.imshow(c[0,0,:,:],cmap = cm.Greys_r)
-    plt.subplot(2,1,2)
-    plt.imshow(d[0,0,:,:],cmap = cm.Greys_r)
-    plt.show()
+    g = abs(c[0,:,:,:].max(axis=0))
+#     img = np.zeros((g.shape[0],g.shape[1],3))
+#     for i in range(3):
+#         img[:,:,i] = d[0,i,:,:].astype('uint8')
+    
+    if show_fig: 
+        plt.subplot(2,1,1)
+        plt.imshow(g,cmap = cm.Greys_r)
+        #plt.imshow(c[0,0,:,:],cmap = cm.Greys_r)
+        plt.subplot(2,1,2)
+        plt.imshow(d[0,0,:,:],cmap = cm.Greys_r)
+        plt.show()
+    return g,lbl
+    
+def run_seg(img_,g):
+    
+    #img_ = plt.imread('images/8bd1f0a8-2b01-4322-b88f-b54223f12d4b.jpg')
+    #img_ = cv2.resize(img_,g.shape)
+    img_ = cv2.resize(img_,g.shape)
+    TH_high = np.percentile(g, 97)
+    #TH_high = np.percentile(g, 99)
+    TH_low = np.percentile(g, 5)
+    mask = np.zeros(g.shape).astype('uint8')
+    mask[g>TH_low]=2
+    mask[g>TH_high]=1
+    tmp1 = np.zeros((1,65),np.float64)
+    tmp2 = np.zeros((1,65),np.float64)    
+    try: 
+        cv2.grabCut(img_,mask,None,tmp1,tmp2,10,mode=cv2.GC_INIT_WITH_MASK)
+    except:
+        #mask = np.zeros(g.shape).astype('uint8')
+        pass
+    
+    mask2 = np.where((mask==2)|(mask==0),0,1).astype('uint8')
+    img = img_*mask2[:,:,np.newaxis]
+    
+    if show_fig:
+        plt.imshow(img),plt.show()
+    
+    open_img = ndimage.binary_opening(mask2)
+    close_img = ndimage.binary_closing(open_img)
+    label_im, nb_labels = ndimage.label(close_img)
+    
+    s = np.asarray([sum(sum(label_im==i)) for i in range(1,nb_labels+1)])
+    mask_=(label_im == s.argmax()+1)
+    img = img_*mask_[:,:,np.newaxis]
+    
+    if show_fig:
+        plt.imshow(img),plt.show()
+        plt.imshow(img_)
+        
+        plt.contour(mask_, [0.5], linewidths=2, colors='r')
+        plt.axis('off')
+        plt.show()
+    
+    return mask_
+    
+    
+    
     
     
     
 def feature_compute(im_name,net_full_conv,net):
-    im = caffe.io.load_image(im_name)
+    try:
+        im = caffe.io.load_image(im_name)
+    except:
+        print "error reading {}".format(im_name)
+        pass
+    
     net_full_conv.set_phase_test()
     net_full_conv.set_mean('data', np.load('../python/caffe/imagenet/ilsvrc_2012_mean.npy'))
     net_full_conv.set_channel_swap('data', (2,1,0))
     net_full_conv.set_raw_scale('data', 255.0)
     
-    #net.set_phase_test()
-    net.set_phase_train()
+    net.set_phase_test()
+    #net.set_phase_train()
     net.set_mode_cpu()
     #net.set_mean('data', np.load('../python/caffe/imagenet/ilsvrc_2012_mean.npy'))
     
@@ -47,16 +114,32 @@ def feature_compute(im_name,net_full_conv,net):
     #net.set_raw_scale('data', 255.0)
     
     # make classification map by forward and print prediction indices at each location
-    out1 = net_full_conv.forward_all(data=np.asarray([net_full_conv.preprocess('data', im)]))
+    #out1 = net_full_conv.forward_all(data=np.asarray([net_full_conv.preprocess('data', im)]))
     #print out1['prob'][0].argmax(axis=0)
     
     #out2 = net.forward_all(data=np.asarray([net.preprocess('data', im)]))
     
     #o = net.forward_backward_all(data=np.asarray([net.preprocess('data', im)]))
+    img = plt.imread(im_name)
+    g,lbl = draw_grad(net)
+    mask = run_seg(img,g)
+    
+    save_dir = '/home/gilad/Devel/caffe/python/results/gradient_ascent_getty/cat/masks'
+    p1 = im_name.rfind('.')
+    p2 = im_name.rfind('/')
+    mask_name = save_dir + im_name[p2:p1]+'_mask_' +str(lbl)+'.jpg'
+    
+    plt.imsave(mask_name,mask)
     
     #c = net.blobs['conv3'].diff
-    for i in range(5):
-        draw_grad(net)
+#     li = open('Catalog_list.txt')
+#     for i in range(5):
+#         name = li.readline()
+#         name = name[:name.find(' ')].strip()
+#         img = plt.imread(name)
+#         g = draw_grad(net)
+#         run_seg(img,g)
+#     li.close()
         
     
     # show net input and confidence map (probability of the top prediction at each location)
@@ -137,7 +220,7 @@ def main(argv):
     
     
     # Load the original network and extract the fully-connected layers' parameters.
-    net_untrained = caffe.Net(caffe_root+'models/bvlc_reference_caffenet/deploy.prototxt')
+    #net_untrained = caffe.Net(caffe_root+'models/bvlc_reference_caffenet/deploy.prototxt')
     
     #net = caffe.Net(caffe_root+'models/bvlc_reference_caffenet/deploy.prototxt', caffe_root+'models/bvlc_reference_caffenet/bvlc_reference_caffenet.caffemodel')
     net = caffe.Net(caffe_root+'models/bvlc_reference_caffenet/train_val_index.prototxt', caffe_root+'models/bvlc_reference_caffenet/bvlc_reference_caffenet.caffemodel')
@@ -173,7 +256,12 @@ def main(argv):
     # load input and configure preprocessing
     feat=[]
     #for i in range(1,19):
-    for im_name in glob.glob("/home/gilad/tmp/*.jpg"):
+#   for im_name in glob.glob("/home/gilad/tmp/*.jpg"):    
+    li = open('Catalog_list.txt')
+    for name in li.readlines():
+#         name = li.readline()
+        im_name = name[:name.find(' ')].strip()   
+        
         #im_name = caffe_root+'examples/images/bike/bike'+str(i)+'.jpg'
         feat.append(feature_compute(im_name, net_full_conv, net))
         
@@ -219,6 +307,8 @@ if __name__ == "__main__":
     import numpy as np
     import matplotlib.pyplot as plt 
     import matplotlib.cm as cm
+    import cv2
+    from scipy import ndimage
     
     main(sys.argv)
         
