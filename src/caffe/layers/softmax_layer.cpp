@@ -53,7 +53,7 @@ void SoftmaxLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     int i_max = std::max_element(bottom_data,bottom_data+channels)-bottom_data;
     Dtype mx = *std::max_element(bottom_data,bottom_data+channels);
 
-    //i_max = 954;
+    //i_max = 770;
     std::cout<< "I_max: " << i_max << " " << mx << std::endl;
     for (int j=0; j<channels; ++j) {
     	if (j!=i_max)

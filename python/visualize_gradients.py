@@ -37,21 +37,25 @@ def draw_grad(net):
 #         img[:,:,i] = d[0,i,:,:].astype('uint8')
     
     if show_fig: 
-        plt.subplot(2,1,1)
-        plt.imshow(g,cmap = cm.Greys_r)
+        plt.subplot(2,1,1); plt.imshow(g,cmap = cm.Greys_r); plt.subplot(2,1,2); plt.imshow(d[0,0,:,:],cmap = cm.Greys_r);plt.show() 
+        
         #plt.imshow(c[0,0,:,:],cmap = cm.Greys_r)
-        plt.subplot(2,1,2)
-        plt.imshow(d[0,0,:,:],cmap = cm.Greys_r)
-        plt.show()
+        
     return g,lbl
     
 def run_seg(img_,g):
     
     #img_ = plt.imread('images/8bd1f0a8-2b01-4322-b88f-b54223f12d4b.jpg')
     #img_ = cv2.resize(img_,g.shape)
-    img_ = cv2.resize(img_,g.shape)
-    TH_high = np.percentile(g, 97)
-    #TH_high = np.percentile(g, 99)
+    img_ = cv2.resize(img_,(256,256))
+    d = int(np.floor((256-g.shape[1])/2))
+    try:
+        img_ = img_[d:256-d-1,d:256-d-1,:]
+    except:
+        img_ = img_[d:256-d-1,d:256-d-1]
+#     img_ = cv2.resize(img_,g.shape)
+#     TH_high = np.percentile(g, 97)
+    TH_high = np.percentile(g, 99)
     TH_low = np.percentile(g, 5)
     mask = np.zeros(g.shape).astype('uint8')
     mask[g>TH_low]=2
@@ -80,11 +84,11 @@ def run_seg(img_,g):
     
     if show_fig:
         plt.imshow(img),plt.show()
-        plt.imshow(img_)
+        plt.imshow(img_); plt.contour(mask_, [0.5], linewidths=2, colors='r'); plt.axis('off'); plt.show()
         
-        plt.contour(mask_, [0.5], linewidths=2, colors='r')
-        plt.axis('off')
-        plt.show()
+        
+        
+        
     
     return mask_
     
@@ -124,7 +128,7 @@ def feature_compute(im_name,net_full_conv,net):
     g,lbl = draw_grad(net)
     mask = run_seg(img,g)
     
-    save_dir = '/home/gilad/Devel/caffe/python/results/gradient_ascent_getty/cat/masks'
+    save_dir = '/home/gilad/Devel/caffe/python/results/gradient_ascent_getty/shoe/masks'
     p1 = im_name.rfind('.')
     p2 = im_name.rfind('/')
     mask_name = save_dir + im_name[p2:p1]+'_mask_' +str(lbl)+'.jpg'
