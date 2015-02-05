@@ -22,6 +22,9 @@ def vis_square(data, padsize=1, padval=0):
 def draw_grad(net):
     
     print "gradient plot"
+    g_a=np.zeros((3,227,227))
+    d_a=np.zeros((3,227,227))
+#     for i in range(10):
     net.forward()
     net.backward()
     
@@ -31,7 +34,10 @@ def draw_grad(net):
     
     c = net.blobs['data'].diff
     d = net.blobs['data'].data
-    g = abs(c[0,:,:,:].max(axis=0))
+    
+    g = abs(c[0,:,:,:]).max(axis=0)
+        
+#         g = g+c[0,:,:,:]
 #     img = np.zeros((g.shape[0],g.shape[1],3))
 #     for i in range(3):
 #         img[:,:,i] = d[0,i,:,:].astype('uint8')
@@ -97,30 +103,13 @@ def run_seg(img_,g):
     
     
     
-def feature_compute(im_name,net_full_conv,net):
+def feature_compute(im_name,net):
     try:
         im = caffe.io.load_image(im_name)
     except:
         print "error reading {}".format(im_name)
         pass
-    
-    net_full_conv.set_phase_test()
-    net_full_conv.set_mean('data', np.load('../python/caffe/imagenet/ilsvrc_2012_mean.npy'))
-    net_full_conv.set_channel_swap('data', (2,1,0))
-    net_full_conv.set_raw_scale('data', 255.0)
-    
-    net.set_phase_test()
-    #net.set_phase_train()
-    net.set_mode_cpu()
-    #net.set_mean('data', np.load('../python/caffe/imagenet/ilsvrc_2012_mean.npy'))
-    
-    #net.set_channel_swap('data', (2,1,0))
-    #net.set_raw_scale('data', 255.0)
-    
-    # make classification map by forward and print prediction indices at each location
-    #out1 = net_full_conv.forward_all(data=np.asarray([net_full_conv.preprocess('data', im)]))
-    #print out1['prob'][0].argmax(axis=0)
-    
+     
     #out2 = net.forward_all(data=np.asarray([net.preprocess('data', im)]))
     
     #o = net.forward_backward_all(data=np.asarray([net.preprocess('data', im)]))
@@ -128,7 +117,7 @@ def feature_compute(im_name,net_full_conv,net):
     g,lbl = draw_grad(net)
     mask = run_seg(img,g)
     
-    save_dir = '/home/gilad/Devel/caffe/python/results/gradient_ascent_getty/shoe/masks'
+    save_dir = '/home/gilad/Devel/caffe/python/results/gradient_ascent_getty/cat/masks'
     p1 = im_name.rfind('.')
     p2 = im_name.rfind('/')
     mask_name = save_dir + im_name[p2:p1]+'_mask_' +str(lbl)+'.jpg'
@@ -163,14 +152,14 @@ def feature_compute(im_name,net_full_conv,net):
     #use fc6-conv layer for features:
     ind_max = np.argmax(abs(net.blobs['fc6'].data[0]))
     ind_sort = (-np.array(net.blobs['fc6'].data[0]).squeeze()).argsort()[:100]
-    feat = net_full_conv.blobs['fc6-conv'].data[0,ind_sort,:,:].reshape(1,64*len(ind_sort)).squeeze()
+#     feat = net_full_conv.blobs['fc6-conv'].data[0,ind_sort,:,:].reshape(1,64*len(ind_sort)).squeeze()
     #feat = net_full_conv.blobs['conv2'].data.reshape(1,1,1,55**2 * 256).squeeze()
-    feat_ = feat
-    if sum(np.power(feat,2))!=0:
-        feat_ = np.divide(feat, np.sqrt(sum(np.power(feat,2))))
+#     feat_ = feat
+#     if sum(np.power(feat,2))!=0:
+#         feat_ = np.divide(feat, np.sqrt(sum(np.power(feat,2))))
     
     #print sum(feat**2)
-    return feat_.copy()
+#     return feat_.copy()
 
 def draw_confusion_table(features):
    
@@ -233,43 +222,27 @@ def main(argv):
     # fc_params = {name: (weights, biases)}
     fc_params = {pr: (net.params[pr][0].data, net.params[pr][1].data) for pr in params}
     
+    net.set_phase_test()
+    net.set_mode_cpu()
+    
     for fc in params:
         print '{} weights are {} dimensional and biases are {} dimensional'.format(fc, fc_params[fc][0].shape, fc_params[fc][1].shape)
-        
-    # Load the fully-convolutional network to transplant the parameters.
-    net_full_conv = caffe.Net(caffe_root+'examples/imagenet/bvlc_caffenet_full_conv.prototxt', caffe_root+'models/bvlc_reference_caffenet/bvlc_reference_caffenet.caffemodel')
-    params_full_conv = ['fc6-conv', 'fc7-conv', 'fc8-conv']
-    # conv_params = {name: (weights, biases)}
-    conv_params = {pr: (net_full_conv.params[pr][0].data, net_full_conv.params[pr][1].data) for pr in params_full_conv}
     
-    for conv in params_full_conv:
-        print '{} weights are {} dimensional and biases are {} dimensional'.format(conv, conv_params[conv][0].shape, conv_params[conv][1].shape)
-    
-    for pr, pr_conv in zip(params, params_full_conv):
-        conv_params[pr_conv][1][...] = fc_params[pr][1]
-        
-    for pr, pr_conv in zip(params, params_full_conv):
-        out, in_, h, w = conv_params[pr_conv][0].shape
-        W = fc_params[pr][0].reshape((out, in_, h, w))
-        conv_params[pr_conv][0][...] = W
-        
-    net_full_conv.save(caffe_root+'examples/imagenet/bvlc_caffenet_full_conv.caffemodel')
-   
     #%matplotlib inline
     
     # load input and configure preprocessing
-    feat=[]
+#     feat=[]
     #for i in range(1,19):
 #   for im_name in glob.glob("/home/gilad/tmp/*.jpg"):    
     li = open('Catalog_list.txt')
     for name in li.readlines():
 #         name = li.readline()
         im_name = name[:name.find(' ')].strip()   
-        
+        feature_compute(im_name, net)
         #im_name = caffe_root+'examples/images/bike/bike'+str(i)+'.jpg'
-        feat.append(feature_compute(im_name, net_full_conv, net))
+#         feat.append(feature_compute(im_name, net_full_conv, net))
         
-    draw_confusion_table(feat)
+#     draw_confusion_table(feat)
         
     #print sum(abs(feat))    
 '''        

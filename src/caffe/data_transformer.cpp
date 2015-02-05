@@ -30,10 +30,13 @@ void DataTransformer<Dtype>::Transform(const int batch_item_id,
     CHECK(data.size()) << "Image cropping only support uint8 data";
     int h_off, w_off;
     // We only do random crop when we do training.
-    if (phase_ == Caffe::TRAIN) {
+//    if (phase_ == Caffe::TRAIN) {
+    if (Caffe::phase() == Caffe::TRAIN) {
+      std::cout << "Train crop rand" << std::endl;
       h_off = Rand() % (height - crop_size);
       w_off = Rand() % (width - crop_size);
     } else {
+      std::cout << "Test crop middle" << std::endl;
       h_off = (height - crop_size) / 2;
       w_off = (width - crop_size) / 2;
     }

@@ -113,6 +113,8 @@ void ImageDataLayer<Dtype>::InternalThreadEntry() {
       continue;
     }
 
+    std::string ph = (Caffe::phase()==Caffe::TEST)?"Test":"Train";
+    std::cout << "Net phase is: " << ph << std::endl;
     // Apply transformations (mirror, crop...) to the data
     this->data_transformer_.Transform(item_id, datum, this->mean_, top_data);
 

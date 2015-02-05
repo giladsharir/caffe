@@ -119,7 +119,8 @@ class Caffe {
   // it personally but better to note it here in the header file.
   inline static void set_mode(Brew mode) { Get().mode_ = mode; }
   // Sets the phase.
-  inline static void set_phase(Phase phase) { Get().phase_ = phase; }
+  inline static void set_phase(Phase phase) { Get().phase_ = phase;
+  	  	  	  	  	  	  	  	  	  	  	  std::cout<< "Setting phase " << phase << std::endl;}
   // Sets the random seed of both boost and curand
   static void set_random_seed(const unsigned int seed);
   // Sets the device. Since we have cublas and curand stuff, set device also

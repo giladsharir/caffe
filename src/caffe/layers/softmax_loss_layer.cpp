@@ -85,7 +85,7 @@ void SoftmaxWithLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 
     int i_max = std::max_element(prob_data,prob_data+dim)-prob_data;
 
-    //i_max = 770;
+    //i_max = 841;
     for (int i=0; i<(*bottom)[0]->count(); ++i) {
     	if (i!=i_max)
     		bottom_diff[i]=0.;
