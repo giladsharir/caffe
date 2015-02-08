@@ -110,7 +110,20 @@ void ImageDataLayer<Dtype>::InternalThreadEntry() {
     if (!ReadImageToDatum(lines_[lines_id_].first,
           lines_[lines_id_].second,
           new_height, new_width, &datum)) {
-      continue;
+    	datum.set_channels(1);
+    	datum.set_height(new_height);
+    	datum.set_width(new_width);
+    	datum.set_label(0);
+    	datum.clear_data();
+    	datum.clear_float_data();
+    	string* datum_string = datum.mutable_data();
+    	for (int h = 0; h < new_height; ++h) {
+    		for (int w = 0; w < new_width; ++w) {
+    			datum_string->push_back(
+    					static_cast<char>(0));
+    		}
+    	}
+      //continue;
     }
 
     std::string ph = (Caffe::phase()==Caffe::TEST)?"Test":"Train";
