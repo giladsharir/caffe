@@ -111,6 +111,9 @@ class DataLayer : public BasePrefetchingDataLayer<Dtype> {
   virtual inline int MinTopBlobs() const { return 1; }
   virtual inline int MaxTopBlobs() const { return 2; }
 
+  void CountTrainLabels();
+  int labels = 0;
+  std::vector<int> label_counts;
  protected:
   virtual void InternalThreadEntry();
 
@@ -123,6 +126,8 @@ class DataLayer : public BasePrefetchingDataLayer<Dtype> {
   MDB_txn* mdb_txn_;
   MDB_cursor* mdb_cursor_;
   MDB_val mdb_key_, mdb_value_;
+
+
 };
 
 /**
