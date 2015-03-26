@@ -157,6 +157,11 @@ int test() {
 
   while (instream >> line)
   {
+
+      file_list.push_back(line);
+	  ostream << line << " 0 \n";
+
+      /*
 	  int p = line.find(',',0);
 	  int p2 = line.find(',',p+1);
 
@@ -168,6 +173,7 @@ int test() {
 
 	  ostream << name << " 0 \n";
 	  //std::cout << name << std::endl;
+      */
 
   }
 
