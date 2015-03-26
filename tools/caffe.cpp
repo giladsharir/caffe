@@ -231,9 +231,10 @@ int test() {
 
     	std::string file_name = file_list[j+labelsBlob->num()*i];
 
-    	std::string ID = imageID[j+labelsBlob->num()*i];
+    	//std::string ID = imageID[j+labelsBlob->num()*i];
 
-    	outstream << file_name << ", " << ID << ", ";
+    	//outstream << file_name << ", " << ID << ", ";
+    	outstream << file_name << ", " ;
 
     	for (int k=0; k < labelsBlob->height(); ++k)
     		outstream << labelsBlob->data_at(j,0,k,0) << ", " << labelsBlob->data_at(j,1,k,0) << ", ";
