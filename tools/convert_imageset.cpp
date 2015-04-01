@@ -58,6 +58,7 @@ int main(int argc, char** argv) {
   }
 
   bool is_color = !FLAGS_gray;
+  LOG(INFO) << argv[2] ;
   std::ifstream infile(argv[2]);
   std::vector<std::pair<string, int> > lines;
   string filename;
@@ -102,8 +103,8 @@ int main(int argc, char** argv) {
     batch = new leveldb::WriteBatch();
   } else if (db_backend == "lmdb") {  // lmdb
     LOG(INFO) << "Opening lmdb " << db_path;
-    CHECK_EQ(mkdir(db_path, 0744), 0)
-        << "mkdir " << db_path << "failed";
+    //CHECK_EQ(mkdir(db_path, 0744), 0)
+    //    << "mkdir " << db_path << "failed";
     CHECK_EQ(mdb_env_create(&mdb_env), MDB_SUCCESS) << "mdb_env_create failed";
     CHECK_EQ(mdb_env_set_mapsize(mdb_env, 1099511627776), MDB_SUCCESS)  // 1TB
         << "mdb_env_set_mapsize failed";

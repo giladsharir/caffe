@@ -120,6 +120,16 @@ def main(argv):
     # Classify.
     start = time.time()
     predictions = classifier.predict(inputs, not args.center_only)
+    label_file = '../data/ilsvrc12/synset_words.txt';
+
+    f = open(label_file,'r')
+    class_labels = [items[items.find(' '):] for items in f.readlines()]
+    f.close()
+    pred_sorted_ind = np.argsort(-predictions,axis=1)
+    for j in range(0,5):
+        print "%s %f " %  (class_labels[pred_sorted_ind[0,j]],predictions[0,pred_sorted_ind[0,j]])
+
+    #print "top prediction: %d " % predictions[0]
     print "Done in %.2f s." % (time.time() - start)
 
     # Save

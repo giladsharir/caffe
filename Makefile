@@ -305,6 +305,7 @@ else
 		LDFLAGS += -framework vecLib
 	endif
 endif
+LIBRARIES += openblas
 INCLUDE_DIRS += $(BLAS_INCLUDE)
 LIBRARY_DIRS += $(BLAS_LIB)
 

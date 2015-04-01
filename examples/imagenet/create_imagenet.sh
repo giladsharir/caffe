@@ -2,16 +2,20 @@
 # Create the imagenet lmdb inputs
 # N.B. set the path to the imagenet train + val data dirs
 
-EXAMPLE=examples/imagenet
-DATA=data/ilsvrc12
-TOOLS=build/tools
+#EXAMPLE=examples/imagenet
+#DATA=data/ilsvrc12
+DATA=/home/titan/remote_pc/
+TOOLS=/home/titan/Devel/caffe/build/tools
 
-TRAIN_DATA_ROOT=/path/to/imagenet/train/
-VAL_DATA_ROOT=/path/to/imagenet/val/
+#IMAGENET data
+TRAIN_DATA_ROOT=/home/titan/remote_pc/
+VAL_DATA_ROOT=/home/titan/remote_pc/
 
 # Set RESIZE=true to resize the images to 256x256. Leave as false if images have
 # already been resized using another tool.
-RESIZE=false
+RESIZE=true
+RESIZE_HEIGHT=256
+RESIZE_WIDTH=256
 if $RESIZE; then
   RESIZE_HEIGHT=256
   RESIZE_WIDTH=256
@@ -34,24 +38,28 @@ if [ ! -d "$VAL_DATA_ROOT" ]; then
   exit 1
 fi
 
-echo "Creating train lmdb..."
+echo "Creating train leveldb..."
 
 GLOG_logtostderr=1 $TOOLS/convert_imageset \
     --resize_height=$RESIZE_HEIGHT \
     --resize_width=$RESIZE_WIDTH \
     --shuffle \
     $TRAIN_DATA_ROOT \
-    $DATA/train.txt \
-    $EXAMPLE/ilsvrc12_train_lmdb
+    $DATA/train_keyword_matches.txt \
+    $DATA/IMAGENET_keyword_matches_train_lmdb
+    #--backend=leveldb \
+    #$DATA/IMAGENET_keyword_matches_train_leveldb
 
-echo "Creating val lmdb..."
+echo "Creating val leveldb..."
 
 GLOG_logtostderr=1 $TOOLS/convert_imageset \
     --resize_height=$RESIZE_HEIGHT \
     --resize_width=$RESIZE_WIDTH \
     --shuffle \
     $VAL_DATA_ROOT \
-    $DATA/val.txt \
-    $EXAMPLE/ilsvrc12_val_lmdb
+    $DATA/val_keyword_matches.txt \
+    $DATA/IMAGENET_keyword_matches_val_lmdb 
+    #--backend=leveldb \
+    #$DATA/IMAGENET_keyword_matches_val_leveldb 
 
 echo "Done."

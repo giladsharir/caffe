@@ -42,6 +42,7 @@ void DataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
     leveldb::DB* db_temp;
     leveldb::Options options = GetLevelDBOptions();
     options.create_if_missing = false;
+    options.max_open_files = 100;
     LOG(INFO) << "Opening leveldb " << this->layer_param_.data_param().source();
     leveldb::Status status = leveldb::DB::Open(
         options, this->layer_param_.data_param().source(), &db_temp);
@@ -140,8 +141,17 @@ void DataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
   this->datum_width_ = datum.width();
   this->datum_size_ = datum.channels() * datum.height() * datum.width();
 
-  if (this->phase_ == caffe::TRAIN) {
+  labels = 797;
+  label_counts.resize(labels,0);
+  if (this->phase_ == caffe::Caffe::TRAIN) {
+//	  labels = 797;
+//	  label_counts.resize(labels,0);
+
+
 	  this->CountTrainLabels();
+// } else if (this->phase_ == caffe::Caffe::TEST) {
+//	  labels = 797;
+//	  label_counts.resize(labels,1000);
   }
 }
 
@@ -150,15 +160,16 @@ template <typename Dtype>
 void DataLayer<Dtype>::CountTrainLabels() {
 
 
-	labels = 797;
-	label_counts.resize(labels,0);
 
-	int dataset_size = 944400; //374000;
+
+	int dataset_size = 944444; //374000;
 	//std::vector<int> label_counts(labels,0);
-	//Datum datum;
-	for (int item_id = 0; item_id < dataset_size; ++ item_id) {
+	Datum datum;
+	for (int item_id = 0; item_id < dataset_size/10; ++ item_id) {
 
-		Datum datum;
+		//Datum datum;
+		//datum = datum->New();
+
 		if (item_id % (dataset_size/10) == 0) {
 			LOG(INFO) << " " << (double)item_id/(double)dataset_size*100 << "%";
 		}
@@ -177,11 +188,15 @@ void DataLayer<Dtype>::CountTrainLabels() {
 		}
 		Dtype label = datum.label();
 		label_counts.at(label)++;
-		datum.release_data();
+		//datum.release_data();
+
 
 	}
+	datum.Clear();
 	iter_->SeekToFirst();
 
+	for (int i=0; i<label_counts.size(); i++)
+		LOG(INFO) << label_counts.at(i) ;
 	int max_count = *std::max_element(label_counts.begin(), label_counts.end());
 	LOG(INFO) << "dataset size: " << dataset_size;
 	LOG(INFO) << "max num. per label: " << max_count;
@@ -227,10 +242,21 @@ void DataLayer<Dtype>::InternalThreadEntry() {
 
     //randomly sample based on label:
     unsigned int samp = caffe_rng_rand() % 1000;
-    int lblnum = label_counts.at(datum.label());
-    int minnum = *std::min_element(label_counts.begin(), label_counts.end());
+    //unsigned int samp = 500;
+    int lblnum = 1;
+    int minnum = 1;
+    if (this->phase_ == caffe::Caffe::TRAIN) {
+    	//LOG(INFO) << "Sampling data with random " << label_counts.size();
+    	//LOG(INFO) << "do train iteration";
+    	assert( label_counts.size() > 0);
+    	lblnum = label_counts.at(datum.label());
+    	//minnum = *std::min_element(label_counts.begin(), label_counts.end());
+    	minnum = 150;
+    }
     float f = 1000*(float)minnum/(float)lblnum;
+    //LOG(INFO) << "sample rnd: " << samp << " " << f;
     if (samp < f) {
+
     	// Apply data transformations (mirror, scale, crop...)
     	this->data_transformer_.Transform(item_id, datum, this->mean_, top_data);
 
@@ -239,7 +265,8 @@ void DataLayer<Dtype>::InternalThreadEntry() {
     	}
     	item_id++;
 
-    }
+    } else
+    	LOG(INFO) << "skipped label " << datum.label();
 
     // go to the next iter
     switch (this->layer_param_.data_param().backend()) {
