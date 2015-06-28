@@ -253,6 +253,7 @@ Layer<Dtype>* GetLayer(const LayerParameter& param) {
     return new WindowDataLayer<Dtype>(param);
   case LayerParameter_LayerType_NONE:
     LOG(FATAL) << "Layer " << name << " has unspecified type.";
+    break; // YD - warning supression
   default:
     LOG(FATAL) << "Layer " << name << " has unknown type " << type;
   }

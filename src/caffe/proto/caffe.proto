@@ -198,7 +198,7 @@ message NetStateRule {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available ID: 41 (last added: contrastive_loss_param)
+// LayerParameter next available ID: 42 (last added: softmax_behavior)
 message LayerParameter {
   repeated string bottom = 2; // the name of the bottom blobs
   repeated string top = 3; // the name of the top blobs
@@ -317,6 +317,14 @@ message LayerParameter {
   optional TanHParameter tanh_param = 37;
   optional ThresholdParameter threshold_param = 25;
   optional WindowDataParameter window_data_param = 20;
+
+  // Should the softmax layer consider all inputs and perform softmax or just tunnel a single input
+  enum SoftmaxLossBehavior {
+   REGULAR = 0;
+   ONLY_MAXIMAL = 1;
+   ONLY_CORRECT = 2;
+  }
+  optional SoftmaxLossBehavior softmax_loss_behavior = 41 [default = REGULAR];
 
   // Parameters for data pre-processing.
   optional TransformationParameter transform_param = 36;

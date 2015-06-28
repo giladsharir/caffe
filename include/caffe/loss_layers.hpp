@@ -696,9 +696,7 @@ template <typename Dtype> class SoftmaxLayer;
 template <typename Dtype>
 class SoftmaxWithLossLayer : public LossLayer<Dtype> {
  public:
-  explicit SoftmaxWithLossLayer(const LayerParameter& param)
-      : LossLayer<Dtype>(param),
-        softmax_layer_(new SoftmaxLayer<Dtype>(param)) {}
+  explicit SoftmaxWithLossLayer(const LayerParameter& param);
   virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top);
   virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
@@ -715,9 +713,15 @@ class SoftmaxWithLossLayer : public LossLayer<Dtype> {
   virtual inline int MaxTopBlobs() const { return 2; }
 
  protected:
+
+  typedef enum VariantType {MAX_ONLY, CORRECT_ONLY} VariantType;
   /// @copydoc SoftmaxWithLossLayer
   virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top);
+  void Forward_cpu_regular(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  void Forward_cpu_variants(
+  		const vector<Blob<Dtype>*>& bottom, vector<Blob<Dtype>*>* top, const VariantType variantType);
   virtual void Forward_gpu(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top);
 
@@ -750,6 +754,10 @@ class SoftmaxWithLossLayer : public LossLayer<Dtype> {
    */
   virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down, vector<Blob<Dtype>*>* bottom);
+  void Backward_cpu_regular(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, vector<Blob<Dtype>*>* bottom);
+  void Backward_cpu_variant(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, vector<Blob<Dtype>*>* bottom, const VariantType variantType);
   virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
       const vector<bool>& propagate_down, vector<Blob<Dtype>*>* bottom);
 
@@ -761,6 +769,11 @@ class SoftmaxWithLossLayer : public LossLayer<Dtype> {
   vector<Blob<Dtype>*> softmax_bottom_vec_;
   /// top vector holder used in call to the underlying SoftmaxLayer::Forward
   vector<Blob<Dtype>*> softmax_top_vec_;
+
+  /// Allowing to change the behavior of the softmax loss function to either regular, or
+  /// Taking the maximal input value, or taking the correct input value. The alter two are used for gradient analysis
+  /// w.r.t. the image pixels
+  ::caffe::LayerParameter_SoftmaxLossBehavior m_behavior;
 };
 
 }  // namespace caffe

@@ -42,15 +42,15 @@ void SoftmaxLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
             bottom_data[i * dim + j * spatial_dim + k]);
       }
     }
-    // subtraction
+    // subtraction: Top <-- Top - scale  ||| Top[c,s] = Bottom[c,s] - max_{i}Bottom[i,s]
     caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, channels, spatial_dim,
         1, -1., sum_multiplier_.cpu_data(), scale_data, 1., top_data + i * dim);
-    // exponentiation
+    // exponentiation: Top <-- exp(Top)  ||| Top[c,s] = exp(Bottom[c,s]) - exp(max_{i}Bottom[i,s])
     caffe_exp<Dtype>(dim, top_data + i * dim, top_data + i * dim);
-    // sum after exp
+    // sum after exp: scale <-- sum_{all cahnnels}(Top[c,s])
     caffe_cpu_gemv<Dtype>(CblasTrans, channels, spatial_dim, 1.,
         top_data + i * dim, sum_multiplier_.cpu_data(), 0., scale_data);
-    // division
+    // division: Top <-- Top / scale
     for (int j = 0; j < channels; j++) {
       caffe_div(spatial_dim, top_data + (*top)[0]->offset(i, j), scale_data,
           top_data + (*top)[0]->offset(i, j));
