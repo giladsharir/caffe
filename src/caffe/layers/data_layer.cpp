@@ -141,7 +141,7 @@ void DataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
   this->datum_width_ = datum.width();
   this->datum_size_ = datum.channels() * datum.height() * datum.width();
 
-  labels = 797;
+  labels = this->layer_param_.data_param().num_labels();
   label_counts.resize(labels,0);
   if (this->phase_ == caffe::Caffe::TRAIN) {
 //	  labels = 797;
@@ -162,7 +162,7 @@ void DataLayer<Dtype>::CountTrainLabels() {
 
 
 
-	int dataset_size = 944444; //374000;
+	int dataset_size = this->layer_param_.data_param().data_size(); //944444; //374000;
 	//std::vector<int> label_counts(labels,0);
 	Datum datum;
 	for (int item_id = 0; item_id < dataset_size/10; ++ item_id) {
@@ -241,7 +241,13 @@ void DataLayer<Dtype>::InternalThreadEntry() {
 
 
     //randomly sample based on label:
-    unsigned int samp = caffe_rng_rand() % 1000;
+    unsigned int samp;
+    if (this->layer_param_.data_param().balanced_sample()) {
+    	samp = caffe_rng_rand() % 1000;
+    } else {
+    	samp = 0;
+    }
+
     //unsigned int samp = 500;
     int lblnum = 1;
     int minnum = 1;

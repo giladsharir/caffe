@@ -159,8 +159,6 @@ void SoftmaxWithLossLayer<Dtype>::Forward_cpu_variants(
 		}
 	}
 	(*top)[0]->mutable_cpu_data()[0] = loss / num;
-
-	std::cout << "loss: " << (*top)[0]->mutable_cpu_data()[0] << std::endl;
 }
 
 template <typename Dtype>
