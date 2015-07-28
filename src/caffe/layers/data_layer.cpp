@@ -241,7 +241,9 @@ void DataLayer<Dtype>::InternalThreadEntry() {
 
 
     //randomly sample based on label:
-    unsigned int samp = caffe_rng_rand() % 1000;
+    unsigned int samp = 0 ;//caffe_rng_rand() % 1000;
+
+
     //unsigned int samp = 500;
     int lblnum = 1;
     int minnum = 1;
